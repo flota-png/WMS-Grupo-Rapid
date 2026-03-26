@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RapidWMS Pro - Grupo Rapid</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='2' y='26' font-size='28'>📦</text></svg>">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOGIN SCREEN
+     ═══════════════════════════════════════════════════════════ -->
+<div class="login-screen">
+    <div class="login-card">
+        <div class="logo-container">
+            <img src="assets/logo.svg" alt="Grupo Rapid">
+        </div>
+        <div class="system-title">Sistema de Gestión de Almacén</div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Usuario</label>
+                <input type="text" id="loginUser" placeholder="Ingresa tu usuario" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" id="loginPass" placeholder="Ingresa tu contraseña" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn-login">Iniciar Sesión</button>
+            <div id="loginError" class="login-error"></div>
+        </form>
+        <div class="login-footer">
+            RapidWMS Pro v1.0 &copy; 2026 Grupo Rapid<br>
+            <span style="font-size:0.72rem;">Usuario: admin / Contraseña: admin</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN APPLICATION
+     ═══════════════════════════════════════════════════════════ -->
+<div class="app-container">
+
+    <!-- ── Sidebar ────────────────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <img src="assets/logo.svg" alt="Grupo Rapid">
+            <div class="sidebar-subtitle">WMS Pro</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-item active" data-module="dashboard">
+                <span class="nav-icon">📊</span> Panel de Control
+            </div>
+            <div class="nav-item" data-module="inventory">
+                <span class="nav-icon">📦</span> Inventario
+                <span class="nav-badge">0</span>
+            </div>
+            <div class="nav-item" data-module="movements">
+                <span class="nav-icon">🔄</span> Movimientos
+            </div>
+            <div class="nav-item" data-module="orders">
+                <span class="nav-icon">🛒</span> Órdenes
+            </div>
+            <div class="nav-item" data-module="warehouses">
+                <span class="nav-icon">🏭</span> Almacenes
+            </div>
+            <div class="nav-item" data-module="suppliers">
+                <span class="nav-icon">🤝</span> Proveedores
+            </div>
+            <div class="nav-item" data-module="reports">
+                <span class="nav-icon">📈</span> Reportes
+            </div>
+            <div class="nav-item" data-module="settings">
+                <span class="nav-icon">⚙️</span> Configuración
+            </div>
+            <div class="nav-item" data-module="logout" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;">
+                <span class="nav-icon">🚪</span> Cerrar Sesión
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            RapidWMS Pro v1.0<br>&copy; 2026 Grupo Rapid
+        </div>
+    </aside>
+
+    <!-- ── Main Content ───────────────────────────────────── -->
+    <div class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <button class="mobile-menu-btn">☰</button>
+            <h1 class="page-title">Panel de Control</h1>
+            <div class="header-actions">
+                <button class="btn-icon" title="Notificaciones">
+                    🔔<span class="badge-dot"></span>
+                </button>
+                <div class="header-user">
+                    <div class="user-avatar">AG</div>
+                    <div class="user-info">
+                        <div class="user-name">Administrador</div>
+                        <div class="user-role">Admin</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="content-area">
+
+            <!-- ══════════════════════════════════════════════
+                 DASHBOARD
+                 ══════════════════════════════════════════════ -->
+            <section id="module-dashboard" class="module-section active">
+                <!-- KPI Cards -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon blue">📦</div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Total Productos</div>
+                            <div class="kpi-value" id="kpiTotalProducts">0</div>
+                            <div class="kpi-sub" id="kpiTotalQuantity">0 unidades</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon red">⚠️</div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Alertas de Stock</div>
+                            <div class="kpi-value" id="kpiLowStock">0</div>
+                            <div class="kpi-sub">productos bajo mínimo</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon yellow">🛒</div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Órdenes Pendientes</div>
+                            <div class="kpi-value" id="kpiPendingOrders">0</div>
+                            <div class="kpi-sub">por procesar</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon green">💰</div>
+                        <div class="kpi-content">
+                            <div class="kpi-label">Valor del Inventario</div>
+                            <div class="kpi-value" id="kpiTotalValue" style="font-size:1.35rem;">$0</div>
+                            <div class="kpi-sub">USD</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header"><h3>📊 Distribución por Categoría</h3></div>
+                        <div class="card-body"><canvas id="chartCategoryDist"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>📈 Tendencia Mensual</h3></div>
+                        <div class="card-body"><canvas id="chartMonthlyTrend"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header"><h3>💰 Valor por Categoría</h3></div>
+                        <div class="card-body"><canvas id="chartValueByCategory"></canvas></div>
+                    </div>
+                    <!-- Low Stock Alerts -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>🚨 Alertas de Stock</h3>
+                            <button class="btn btn-sm btn-outline" onclick="App.navigateTo('inventory')">Ver todo</button>
+                        </div>
+                        <div class="card-body" id="lowStockAlerts"></div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🕐 Actividad Reciente</h3>
+                        <button class="btn btn-sm btn-outline" onclick="App.navigateTo('movements')">Ver todo</button>
+                    </div>
+                    <div class="card-body">
+                        <ul class="activity-list" id="activityFeed"></ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════════════
+                 INVENTORY
+                 ══════════════════════════════════════════════ -->
+            <section id="module-inventory" class="module-section">
+                <div class="toolbar">
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="invSearch" placeholder="Buscar por SKU o nombre...">
+                    </div>
+                    <select class="filter-select" id="invFilterCategory">
+                        <option value="">Todas las categorías</option>
+                        <option value="Aires Acondicionados">Aires Acondicionados</option>
+                        <option value="Fumigación">Fumigación</option>
+                        <option value="Piscinas">Piscinas</option>
+                    </select>
+                    <select class="filter-select" id="invFilterStatus">
+                        <option value="">Todos los estados</option>
+                        <option value="ok">Normal</option>
+                        <option value="low">Bajo</option>
+                        <option value="critical">Crítico</option>
+                    </select>
+                    <select class="filter-select" id="invFilterWarehouse">
+                        <option value="">Todos los almacenes</option>
+                        <option value="Zona A">Zona A</option>
+                        <option value="Zona B">Zona B</option>
+                        <option value="Zona C">Zona C</option>
+                        <option value="Zona D">Zona D</option>
+                    </select>
+                    <div class="toolbar-right">
+                        <button class="btn btn-outline" id="btnExportCSV">📥 Exportar CSV</button>
+                        <button class="btn btn-primary" id="btnAddProduct">+ Nuevo Producto</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body no-padding">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Producto</th>
+                                        <th>Categoría</th>
+                                        <th>Subcategoría</th>
+                                        <th class="text-center">Cant.</th>
+                                        <th class="text-center">Mín.</th>
+                                        <th>Ubicación</th>
+                                        <th class="text-right">Precio</th>
+                                        <th>Estado</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventoryTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination">
+                            <span id="inventoryCount">0 productos</span>
+                            <div class="pagination-buttons" id="inventoryPagination"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════════════
+                 MOVEMENTS
+                 ══════════════════════════════════════════════ -->
+            <section id="module-movements" class="module-section">
+                <div class="toolbar">
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="movSearch" placeholder="Buscar por producto o referencia...">
+                    </div>
+                    <select class="filter-select" id="movFilterType">
+                        <option value="">Todos los tipos</option>
+                        <option value="Entrada">Entradas</option>
+                        <option value="Salida">Salidas</option>
+                        <option value="Transferencia">Transferencias</option>
+                    </select>
+                    <div class="toolbar-right">
+                        <button class="btn btn-primary" id="btnNewMovement">+ Registrar Movimiento</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body no-padding">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Hora</th>
+                                        <th>Tipo</th>
+                                        <th>Producto</th>
+                                        <th class="text-center">Cant.</th>
+                                        <th>Almacén</th>
+                                        <th>Ubicación</th>
+                                        <th>Referencia</th>
+                                        <th>Usuario</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="movementsTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination">
+                            <span id="movementsCount">0 movimientos</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════════════
+                 ORDERS
+                 ══════════════════════════════════════════════ -->
+            <section id="module-orders" class="module-section">
+                <div class="toolbar">
+                    <select class="filter-select" id="orderFilterStatus">
+                        <option value="">Todos los estados</option>
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="En Proceso">En Proceso</option>
+                        <option value="Completada">Completada</option>
+                        <option value="Cancelada">Cancelada</option>
+                    </select>
+                    <div class="toolbar-right">
+                        <button class="btn btn-primary" id="btnNewOrder">+ Nueva Orden</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body no-padding">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>N° Orden</th>
+                                        <th>Proveedor</th>
+                                        <th>Fecha</th>
+                                        <th>Entrega Est.</th>
+                                        <th class="text-center">Artículos</th>
+                                        <th class="text-right">Total</th>
+                                        <th>Estado</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ordersTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════════════
+                 WAREHOUSES
+                 ══════════════════════════════════════════════ -->
+            <section id="module-warehouses" class="module-section">
+                <div class="warehouse-grid" id="warehouseCards"></div>
+
+                <!-- ── Rack 3D Visualization ──────────────────── -->
+                <div class="card" style="margin-top:24px;">
+                    <div class="card-header">
+                        <h3>🏗️ Vista de Racks y Productos</h3>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <select class="filter-select" id="rackZoneFilter" style="min-width:160px;">
+                                <option value="">Todas las zonas</option>
+                                <option value="Zona A">Zona A - Aires</option>
+                                <option value="Zona B">Zona B - Fumigación</option>
+                                <option value="Zona C">Zona C - Piscinas</option>
+                                <option value="Zona D">Zona D - General</option>
+                            </select>
+                            <button class="btn btn-sm btn-outline" id="btnToggleRackView" title="Cambiar vista">🔄 Vista</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="rack-legend">
+                            <span class="rack-legend-item"><span class="rack-legend-dot" style="background:#10b981;"></span> Stock Normal</span>
+                            <span class="rack-legend-item"><span class="rack-legend-dot" style="background:#f59e0b;"></span> Stock Bajo</span>
+                            <span class="rack-legend-item"><span class="rack-legend-dot" style="background:#ef4444;"></span> Stock Crítico</span>
+                            <span class="rack-legend-item"><span class="rack-legend-dot" style="background:var(--gray-200);"></span> Vacío</span>
+                        </div>
+                        <div class="rack-floor" id="rackFloor"></div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:24px;">
+                    <div class="card-header"><h3>🗺️ Mapa del Almacén</h3></div>
+                    <div class="card-body">
+                        <div class="warehouse-map" id="warehouseMap"></div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:20px;">
+                    <div class="card-header"><h3>📊 Indicadores de Capacidad</h3></div>
+                    <div class="card-body">
+                        <div style="display:flex;justify-content:space-around;flex-wrap:wrap;gap:16px;">
+                            <canvas id="gauge-W001"></canvas>
+                            <canvas id="gauge-W002"></canvas>
+                            <canvas id="gauge-W003"></canvas>
+                            <canvas id="gauge-W004"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ══════════════════════════════════════════════
+                 SUPPLIERS
+                 ══════════════════════════════════════════════ -->
+            <section id="module-suppliers" class="module-section">
+                <div class="toolbar">
+                    <div class="toolbar-right" style="margin-left:0;">
+                        <button class="btn btn-primary" id="btnAddSupplier">+ Nuevo Proveedor</button>
+                    </div>
+                </div>
+                <div class="supplier-grid" id="supplierGrid"></div>
+            </section>
+
+            <!-- ══════════════════════════════════════════════
+                 REPORTS
+                 ══════════════════════════════════════════════ -->
+            <section id="module-reports" class="module-section">
+                <div class="toolbar" style="margin-bottom:0;">
+                    <div class="report-tabs">
+                        <button class="report-tab active" data-report="valuation">💰 Valoración</button>
+                        <button class="report-tab" data-report="movements">🔄 Movimientos</button>
+                        <button class="report-tab" data-report="lowstock">⚠️ Stock Bajo</button>
+                        <button class="report-tab" data-report="categories">📊 Categorías</button>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn btn-outline" id="btnPrintReport">🖨️ Imprimir</button>
+                    </div>
+                </div>
+                <div id="reportContent" style="margin-top:20px;"></div>
+            </section>
+
+            <!-- ══════════════════════════════════════════════
+                 SETTINGS
+                 ══════════════════════════════════════════════ -->
+            <section id="module-settings" class="module-section">
+                <!-- User Management -->
+                <div class="settings-section">
+                    <h4>👥 Gestión de Usuarios</h4>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Nombre</th>
+                                    <th>Rol</th>
+                                    <th>Email</th>
+                                    <th>Estado</th>
+                                    <th>Último Acceso</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody"></tbody>
+                        </table>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="btnAddUser" style="margin-top:12px;">+ Nuevo Usuario</button>
+                </div>
+
+                <!-- System Preferences -->
+                <div class="settings-section">
+                    <h4>⚙️ Preferencias del Sistema</h4>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Nombre de la Empresa
+                            <small>Se muestra en reportes y documentos</small>
+                        </div>
+                        <input type="text" id="settingCompany" style="width:250px;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:6px;">
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Moneda
+                            <small>Moneda para precios y valores</small>
+                        </div>
+                        <select id="settingCurrency" style="padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:6px;">
+                            <option value="MXN">MXN - Peso Mexicano</option>
+                            <option value="USD">USD - Dólar Americano</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Respaldo Automático
+                            <small>Guardar datos en localStorage automáticamente</small>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="settingAutoBackup" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Notificaciones
+                            <small>Mostrar alertas de stock bajo</small>
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" id="settingNotifications" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div style="margin-top:20px;display:flex;gap:10px;">
+                        <button class="btn btn-primary" id="btnSaveSettings">Guardar Configuración</button>
+                        <button class="btn btn-danger" id="btnResetData">Restablecer Datos</button>
+                    </div>
+                </div>
+
+                <!-- Warehouse Zones Config -->
+                <div class="settings-section">
+                    <h4>🏭 Configuración de Zonas</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Zona</th><th>Nombre Completo</th><th>Categoría</th><th>Capacidad</th><th>Ubicaciones</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Zona A</strong></td><td>Aires Acondicionados</td><td>Aires Acondicionados</td><td>100 unidades</td><td>24</td></tr>
+                            <tr><td><strong>Zona B</strong></td><td>Fumigación</td><td>Fumigación</td><td>80 unidades</td><td>16</td></tr>
+                            <tr><td><strong>Zona C</strong></td><td>Piscinas</td><td>Piscinas</td><td>90 unidades</td><td>20</td></tr>
+                            <tr><td><strong>Zona D</strong></td><td>General</td><td>General</td><td>60 unidades</td><td>12</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </div><!-- /content-area -->
+    </div><!-- /main-content -->
+</div><!-- /app-container -->
+
+<!-- ── Modal ───────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Modal</h3>
+            <button class="modal-close" onclick="App.closeModal()">&times;</button>
+        </div>
+        <div class="modal-body"></div>
+        <div class="modal-footer"></div>
+    </div>
+</div>
+
+<!-- ── Toast Container ─────────────────────────────────────── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ── Scripts ──────────────────────────────────────────────── -->
+<script src="js/data.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
