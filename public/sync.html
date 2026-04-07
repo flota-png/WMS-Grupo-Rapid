@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Sincronizar a Firebase</title></head>
+<body style="font-family:Arial;text-align:center;padding:60px;">
+<h2>Sincronizar datos del WMS a Firebase</h2>
+<p>Haz clic en el boton para subir tus datos actuales a Firebase</p>
+<button id="btn" onclick="syncNow()" style="font-size:20px;padding:20px 40px;background:#1a3a8f;color:white;border:none;border-radius:8px;cursor:pointer;">
+    Sincronizar Ahora
+</button>
+<div id="status" style="margin-top:30px;font-size:16px;"></div>
+<script>
+var FB_URL = 'https://wms-gruporapid-6689c-default-rtdb.firebaseio.com';
+var KEYS = ['rwms_products','rwms_movements','rwms_orders','rwms_suppliers','rwms_warehouses','rwms_users','rwms_settings'];
+var NAMES = ['products','movements','orders','suppliers','warehouses','users','settings'];
+
+function syncNow() {
+    var status = document.getElementById('status');
+    var btn = document.getElementById('btn');
+    btn.disabled = true;
+    btn.textContent = 'Sincronizando...';
+    status.innerHTML = '';
+    var count = 0;
+    var total = KEYS.length;
+
+    for (var i = 0; i < KEYS.length; i++) {
+        (function(idx) {
+            var raw = localStorage.getItem(KEYS[idx]);
+            var data = null;
+            try { data = JSON.parse(raw); } catch(e) {}
+
+            if (data) {
+                fetch(FB_URL + '/' + NAMES[idx] + '.json', {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                }).then(function(r) {
+                    count++;
+                    status.innerHTML += '<br>✅ ' + NAMES[idx] + ' - ' + (Array.isArray(data) ? data.length + ' registros' : 'OK');
+                    if (count === total) {
+                        btn.textContent = '¡Listo!';
+                        btn.style.background = '#10b981';
+                        status.innerHTML += '<br><br><strong>Datos sincronizados correctamente con Firebase</strong>';
+                    }
+                }).catch(function(e) {
+                    count++;
+                    status.innerHTML += '<br>❌ ' + NAMES[idx] + ' - Error: ' + e.message;
+                });
+            } else {
+                count++;
+                status.innerHTML += '<br>⚠️ ' + NAMES[idx] + ' - Sin datos locales';
+                if (count === total) {
+                    btn.textContent = '¡Listo!';
+                    btn.style.background = '#10b981';
+                }
+            }
+        })(i);
+    }
+}
+</script>
+</body></html>
