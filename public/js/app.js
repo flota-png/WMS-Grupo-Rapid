@@ -503,7 +503,7 @@ const App = (() => {
 
         const body = `
         <form id="movementForm">
-            <div class="form-row">
+            <div class="form-row-3">
                 <div class="form-group">
                     <label>Tipo de Movimiento</label>
                     <select id="mType" required>
@@ -511,6 +511,10 @@ const App = (() => {
                         <option value="Salida" ${movement?.type === 'Salida' ? 'selected' : ''}>Salida</option>
                         <option value="Transferencia" ${movement?.type === 'Transferencia' ? 'selected' : ''}>Transferencia</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Fecha</label>
+                    <input type="date" id="mDate" value="${movement?.date || new Date().toISOString().split('T')[0]}">
                 </div>
                 <div class="form-group">
                     <label>Referencia</label>
@@ -596,6 +600,7 @@ const App = (() => {
                 product: productId,
                 productName: product.name,
                 quantity: qty,
+                date: document.getElementById('mDate').value,
                 warehouse: document.getElementById('mWarehouse').value,
                 location: document.getElementById('mLocation').value,
                 reference: document.getElementById('mReference').value.trim(),
@@ -617,6 +622,7 @@ const App = (() => {
                 product: productId,
                 productName: product.name,
                 quantity: qty,
+                date: document.getElementById('mDate').value,
                 warehouse: document.getElementById('mWarehouse').value,
                 location: document.getElementById('mLocation').value,
                 reference: document.getElementById('mReference').value.trim(),
