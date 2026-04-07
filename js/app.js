@@ -499,14 +499,57 @@ const App = (() => {
 
     let editingMovementId = null;
 
+    let movProductCounter = 0;
+
+    function buildProductOptions(selectedId) {
+        const products = DataManager.getProducts();
+        return `<option value="">Seleccionar producto...</option>` +
+            products.map(p => `<option value="${p.id}" data-warehouse="${p.warehouse}" data-location="${p.location}" ${selectedId === p.id ? 'selected' : ''}>${p.sku} - ${p.name} (Stock: ${p.quantity})</option>`).join('');
+    }
+
+    function buildWarehouseOptions(selectedName) {
+        const warehouses = DataManager.getWarehouses();
+        return warehouses.map(w => `<option value="${w.name}" ${selectedName === w.name ? 'selected' : ''}>${w.name}</option>`).join('');
+    }
+
+    function buildProductRow(index, data) {
+        return `<div class="mov-product-row" data-index="${index}" style="border:1px solid var(--gray-200);border-radius:8px;padding:12px;margin-bottom:8px;position:relative;">
+            ${index > 0 ? `<button type="button" class="btn btn-ghost btn-sm" onclick="App.removeMovProductRow(${index})" style="position:absolute;top:4px;right:4px;color:var(--red);" title="Quitar">&times;</button>` : ''}
+            <div class="form-group">
+                <label>Producto</label>
+                <select class="mProduct" data-index="${index}" required>
+                    ${buildProductOptions(data?.product)}
+                </select>
+            </div>
+            <div class="form-row-3">
+                <div class="form-group">
+                    <label>Cantidad</label>
+                    <input type="number" class="mQuantity" data-index="${index}" min="1" value="${data?.quantity || 1}" required>
+                </div>
+                <div class="form-group">
+                    <label>Almac\u00e9n</label>
+                    <select class="mWarehouse" data-index="${index}">
+                        ${buildWarehouseOptions(data?.warehouse)}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ubicaci\u00f3n</label>
+                    <input type="text" class="mLocation" data-index="${index}" value="${data?.location || ''}" placeholder="Ej: A-01-01">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Notas</label>
+                <input type="text" class="mNotes" data-index="${index}" value="${data?.notes || ''}" placeholder="Observaciones...">
+            </div>
+        </div>`;
+    }
+
     function showMovementForm(movementId) {
         if (movementId instanceof Event || typeof movementId !== 'string') movementId = null;
         const movement = movementId ? DataManager.getMovement(movementId) : null;
         const isEdit = !!movement;
         editingMovementId = movementId || null;
-
-        const products = DataManager.getProducts();
-        const warehouses = DataManager.getWarehouses();
+        movProductCounter = 0;
 
         const body = `
         <form id="movementForm">
@@ -528,33 +571,10 @@ const App = (() => {
                     <input type="text" id="mReference" value="${movement?.reference || ''}" placeholder="Ej: OC-2026-018 o VTA-4522">
                 </div>
             </div>
-            <div class="form-group">
-                <label>Producto</label>
-                <select id="mProduct" required>
-                    <option value="">Seleccionar producto...</option>
-                    ${products.map(p => `<option value="${p.id}" data-warehouse="${p.warehouse}" data-location="${p.location}" ${movement?.product === p.id ? 'selected' : ''}>${p.sku} - ${p.name} (Stock: ${p.quantity})</option>`).join('')}
-                </select>
+            <div id="movProductRows">
+                ${buildProductRow(0, movement ? { product: movement.product, quantity: movement.quantity, warehouse: movement.warehouse, location: movement.location, notes: movement.notes } : null)}
             </div>
-            <div class="form-row-3">
-                <div class="form-group">
-                    <label>Cantidad</label>
-                    <input type="number" id="mQuantity" min="1" value="${movement?.quantity || 1}" required>
-                </div>
-                <div class="form-group">
-                    <label>Almac\u00e9n</label>
-                    <select id="mWarehouse">
-                        ${warehouses.map(w => `<option value="${w.name}" ${movement?.warehouse === w.name ? 'selected' : ''}>${w.name}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Ubicaci\u00f3n</label>
-                    <input type="text" id="mLocation" value="${movement?.location || ''}" placeholder="Ej: A-01-01">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Notas</label>
-                <textarea id="mNotes" rows="2" placeholder="Observaciones del movimiento...">${movement?.notes || ''}</textarea>
-            </div>
+            ${!isEdit ? `<button type="button" class="btn btn-outline btn-sm" onclick="App.addMovProductRow()" style="margin-bottom:12px;">+ Agregar otro producto</button>` : ''}
         </form>`;
 
         const footer = `
@@ -568,31 +588,54 @@ const App = (() => {
             document.getElementById('movementForm')?.addEventListener('submit', e => e.preventDefault());
         }, 50);
 
-        // Auto-fill warehouse/location when product is selected
+        bindMovProductAutoFill();
+    }
+
+    function bindMovProductAutoFill() {
         setTimeout(() => {
-            document.getElementById('mProduct')?.addEventListener('change', e => {
-                const opt = e.target.selectedOptions[0];
-                if (opt) {
-                    document.getElementById('mWarehouse').value = opt.dataset.warehouse || '';
-                    document.getElementById('mLocation').value = opt.dataset.location || '';
+            document.querySelectorAll('.mProduct').forEach(sel => {
+                if (!sel.dataset.bound) {
+                    sel.dataset.bound = '1';
+                    sel.addEventListener('change', e => {
+                        const idx = e.target.dataset.index;
+                        const opt = e.target.selectedOptions[0];
+                        if (opt) {
+                            document.querySelector(`.mWarehouse[data-index="${idx}"]`).value = opt.dataset.warehouse || '';
+                            document.querySelector(`.mLocation[data-index="${idx}"]`).value = opt.dataset.location || '';
+                        }
+                    });
                 }
             });
-        }, 100);
+        }, 50);
+    }
+
+    function addMovProductRow() {
+        movProductCounter++;
+        const container = document.getElementById('movProductRows');
+        container.insertAdjacentHTML('beforeend', buildProductRow(movProductCounter, null));
+        bindMovProductAutoFill();
+    }
+
+    function removeMovProductRow(index) {
+        const row = document.querySelector(`.mov-product-row[data-index="${index}"]`);
+        if (row) row.remove();
     }
 
     function saveMovement() {
-        const productId = document.getElementById('mProduct').value;
-        const product = DataManager.getProduct(productId);
-        if (!product) { toast('Selecciona un producto', 'warning'); return; }
-
-        const qty = parseInt(document.getElementById('mQuantity').value);
         const type = document.getElementById('mType').value;
+        const date = document.getElementById('mDate').value;
+        const reference = document.getElementById('mReference').value.trim();
 
         if (editingMovementId) {
-            // Editing: calculate effective stock to validate
+            // Editing single movement
+            const row = document.querySelector('.mov-product-row[data-index="0"]');
+            const productId = row.querySelector('.mProduct').value;
+            const product = DataManager.getProduct(productId);
+            if (!product) { toast('Selecciona un producto', 'warning'); return; }
+            const qty = parseInt(row.querySelector('.mQuantity').value);
+
             const oldMov = DataManager.getMovement(editingMovementId);
             let effectiveStock = product.quantity;
-            // Revert old movement effect to get base stock
             if (oldMov.product === productId) {
                 if (oldMov.type === 'Entrada') effectiveStock -= parseInt(oldMov.quantity);
                 else if (oldMov.type === 'Salida') effectiveStock += parseInt(oldMov.quantity);
@@ -603,15 +646,10 @@ const App = (() => {
             }
 
             DataManager.updateMovement(editingMovementId, {
-                type: type,
-                product: productId,
-                productName: product.name,
-                quantity: qty,
-                date: document.getElementById('mDate').value,
-                warehouse: document.getElementById('mWarehouse').value,
-                location: document.getElementById('mLocation').value,
-                reference: document.getElementById('mReference').value.trim(),
-                notes: document.getElementById('mNotes').value.trim()
+                type, product: productId, productName: product.name, quantity: qty, date,
+                warehouse: row.querySelector('.mWarehouse').value,
+                location: row.querySelector('.mLocation').value,
+                reference, notes: row.querySelector('.mNotes').value.trim()
             });
 
             editingMovementId = null;
@@ -619,26 +657,39 @@ const App = (() => {
             renderMovements();
             toast('Movimiento actualizado correctamente', 'success');
         } else {
-            if (type === 'Salida' && qty > product.quantity) {
-                toast('Stock insuficiente. Disponible: ' + product.quantity, 'error');
+            // New: multiple products
+            const rows = document.querySelectorAll('.mov-product-row');
+            const movimientos = [];
+
+            for (const row of rows) {
+                const productId = row.querySelector('.mProduct').value;
+                if (!productId) continue;
+                const product = DataManager.getProduct(productId);
+                if (!product) continue;
+                const qty = parseInt(row.querySelector('.mQuantity').value);
+
+                if (type === 'Salida' && qty > product.quantity) {
+                    toast(`Stock insuficiente para ${product.name}. Disponible: ${product.quantity}`, 'error');
+                    return;
+                }
+
+                movimientos.push({
+                    type, product: productId, productName: product.name, quantity: qty, date,
+                    warehouse: row.querySelector('.mWarehouse').value,
+                    location: row.querySelector('.mLocation').value,
+                    reference, notes: row.querySelector('.mNotes').value.trim()
+                });
+            }
+
+            if (movimientos.length === 0) {
+                toast('Selecciona al menos un producto', 'warning');
                 return;
             }
 
-            DataManager.saveMovement({
-                type: type,
-                product: productId,
-                productName: product.name,
-                quantity: qty,
-                date: document.getElementById('mDate').value,
-                warehouse: document.getElementById('mWarehouse').value,
-                location: document.getElementById('mLocation').value,
-                reference: document.getElementById('mReference').value.trim(),
-                notes: document.getElementById('mNotes').value.trim()
-            });
-
+            movimientos.forEach(m => DataManager.saveMovement(m));
             closeModal();
             renderMovements();
-            toast('Movimiento registrado correctamente', 'success');
+            toast(`${movimientos.length} movimiento(s) registrado(s) correctamente`, 'success');
         }
     }
 
@@ -1556,6 +1607,8 @@ const App = (() => {
         deleteMovement,
         confirmDeleteMovement,
         saveMovement,
+        addMovProductRow,
+        removeMovProductRow,
         // Orders
         viewOrder,
         editOrderStatus,
