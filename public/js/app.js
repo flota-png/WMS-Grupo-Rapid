@@ -479,6 +479,7 @@ const App = (() => {
             <td>${m.warehouse}</td>
             <td>${m.location}</td>
             <td>${m.reference}</td>
+            <td>${m.notes || ''}</td>
             <td>${m.user}</td>
             <td class="text-center" style="white-space:nowrap;">
                 <button class="btn btn-ghost btn-sm" onclick="App.editMovement('${m.id}')" title="Editar">✏️</button>
@@ -486,7 +487,7 @@ const App = (() => {
             </td>
         </tr>`).join('');
 
-        document.getElementById('movementsTableBody').innerHTML = rows || `<tr><td colspan="10" class="empty-state"><p>Sin movimientos</p></td></tr>`;
+        document.getElementById('movementsTableBody').innerHTML = rows || `<tr><td colspan="11" class="empty-state"><p>Sin movimientos</p></td></tr>`;
         document.getElementById('movementsCount').textContent = `${filtered.length} movimientos`;
     }
 
