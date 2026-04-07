@@ -371,6 +371,33 @@ const DataManager = (() => {
             return mov;
         },
 
+        getMovement(id) { return _data.movements.find(m => m.id === id); },
+        updateMovement(id, updates) {
+            const idx = _data.movements.findIndex(m => m.id === id);
+            if (idx < 0) return null;
+            const oldMov = _data.movements[idx];
+            // Revert old movement effect on product quantity
+            const oldProduct = this.getProduct(oldMov.product);
+            if (oldProduct) {
+                if (oldMov.type === 'Entrada') oldProduct.quantity -= parseInt(oldMov.quantity);
+                else if (oldMov.type === 'Salida') oldProduct.quantity += parseInt(oldMov.quantity);
+                updateProductStatus(oldProduct);
+            }
+            // Apply updates
+            Object.assign(_data.movements[idx], updates);
+            const newMov = _data.movements[idx];
+            // Apply new movement effect on product quantity
+            const newProduct = this.getProduct(newMov.product);
+            if (newProduct) {
+                if (newMov.type === 'Entrada') newProduct.quantity += parseInt(newMov.quantity);
+                else if (newMov.type === 'Salida') newProduct.quantity -= parseInt(newMov.quantity);
+                updateProductStatus(newProduct);
+                newProduct.lastUpdated = new Date().toISOString().split('T')[0];
+            }
+            persist();
+            return newMov;
+        },
+
         // Orders
         getOrders() { return _data.orders; },
         getOrder(id) { return _data.orders.find(o => o.id === id); },

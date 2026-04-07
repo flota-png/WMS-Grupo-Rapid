@@ -470,9 +470,12 @@ const App = (() => {
             <td>${m.location}</td>
             <td>${m.reference}</td>
             <td>${m.user}</td>
+            <td class="text-center">
+                <button class="btn btn-ghost btn-sm" onclick="App.editMovement('${m.id}')" title="Editar">✏️</button>
+            </td>
         </tr>`).join('');
 
-        document.getElementById('movementsTableBody').innerHTML = rows || `<tr><td colspan="9" class="empty-state"><p>Sin movimientos</p></td></tr>`;
+        document.getElementById('movementsTableBody').innerHTML = rows || `<tr><td colspan="10" class="empty-state"><p>Sin movimientos</p></td></tr>`;
         document.getElementById('movementsCount').textContent = `${filtered.length} movimientos`;
     }
 
@@ -482,7 +485,13 @@ const App = (() => {
         document.getElementById('btnNewMovement')?.addEventListener('click', showMovementForm);
     }
 
-    function showMovementForm() {
+    let editingMovementId = null;
+
+    function showMovementForm(movementId) {
+        const movement = movementId ? DataManager.getMovement(movementId) : null;
+        const isEdit = !!movement;
+        editingMovementId = movementId || null;
+
         const products = DataManager.getProducts();
         const warehouses = DataManager.getWarehouses();
 
@@ -492,50 +501,50 @@ const App = (() => {
                 <div class="form-group">
                     <label>Tipo de Movimiento</label>
                     <select id="mType" required>
-                        <option value="Entrada">Entrada</option>
-                        <option value="Salida">Salida</option>
-                        <option value="Transferencia">Transferencia</option>
+                        <option value="Entrada" ${movement?.type === 'Entrada' ? 'selected' : ''}>Entrada</option>
+                        <option value="Salida" ${movement?.type === 'Salida' ? 'selected' : ''}>Salida</option>
+                        <option value="Transferencia" ${movement?.type === 'Transferencia' ? 'selected' : ''}>Transferencia</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Referencia</label>
-                    <input type="text" id="mReference" placeholder="Ej: OC-2026-018 o VTA-4522">
+                    <input type="text" id="mReference" value="${movement?.reference || ''}" placeholder="Ej: OC-2026-018 o VTA-4522">
                 </div>
             </div>
             <div class="form-group">
                 <label>Producto</label>
                 <select id="mProduct" required>
                     <option value="">Seleccionar producto...</option>
-                    ${products.map(p => `<option value="${p.id}" data-warehouse="${p.warehouse}" data-location="${p.location}">${p.sku} - ${p.name} (Stock: ${p.quantity})</option>`).join('')}
+                    ${products.map(p => `<option value="${p.id}" data-warehouse="${p.warehouse}" data-location="${p.location}" ${movement?.product === p.id ? 'selected' : ''}>${p.sku} - ${p.name} (Stock: ${p.quantity})</option>`).join('')}
                 </select>
             </div>
             <div class="form-row-3">
                 <div class="form-group">
                     <label>Cantidad</label>
-                    <input type="number" id="mQuantity" min="1" value="1" required>
+                    <input type="number" id="mQuantity" min="1" value="${movement?.quantity || 1}" required>
                 </div>
                 <div class="form-group">
                     <label>Almac\u00e9n</label>
                     <select id="mWarehouse">
-                        ${warehouses.map(w => `<option value="${w.name}">${w.name}</option>`).join('')}
+                        ${warehouses.map(w => `<option value="${w.name}" ${movement?.warehouse === w.name ? 'selected' : ''}>${w.name}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Ubicaci\u00f3n</label>
-                    <input type="text" id="mLocation" placeholder="Ej: A-01-01">
+                    <input type="text" id="mLocation" value="${movement?.location || ''}" placeholder="Ej: A-01-01">
                 </div>
             </div>
             <div class="form-group">
                 <label>Notas</label>
-                <textarea id="mNotes" rows="2" placeholder="Observaciones del movimiento..."></textarea>
+                <textarea id="mNotes" rows="2" placeholder="Observaciones del movimiento...">${movement?.notes || ''}</textarea>
             </div>
         </form>`;
 
         const footer = `
             <button class="btn btn-outline" onclick="App.closeModal()">Cancelar</button>
-            <button class="btn btn-primary" onclick="App.saveMovement()">Registrar Movimiento</button>`;
+            <button class="btn btn-primary" onclick="App.saveMovement()">${isEdit ? 'Actualizar Movimiento' : 'Registrar Movimiento'}</button>`;
 
-        openModal('Registrar Movimiento', body, footer);
+        openModal(isEdit ? 'Editar Movimiento' : 'Registrar Movimiento', body, footer);
 
         // Auto-fill warehouse/location when product is selected
         setTimeout(() => {
@@ -557,25 +566,56 @@ const App = (() => {
         const qty = parseInt(document.getElementById('mQuantity').value);
         const type = document.getElementById('mType').value;
 
-        if (type === 'Salida' && qty > product.quantity) {
-            toast('Stock insuficiente. Disponible: ' + product.quantity, 'error');
-            return;
+        if (editingMovementId) {
+            // Editing: calculate effective stock to validate
+            const oldMov = DataManager.getMovement(editingMovementId);
+            let effectiveStock = product.quantity;
+            // Revert old movement effect to get base stock
+            if (oldMov.product === productId) {
+                if (oldMov.type === 'Entrada') effectiveStock -= parseInt(oldMov.quantity);
+                else if (oldMov.type === 'Salida') effectiveStock += parseInt(oldMov.quantity);
+            }
+            if (type === 'Salida' && qty > effectiveStock) {
+                toast('Stock insuficiente. Disponible (sin este movimiento): ' + effectiveStock, 'error');
+                return;
+            }
+
+            DataManager.updateMovement(editingMovementId, {
+                type: type,
+                product: productId,
+                productName: product.name,
+                quantity: qty,
+                warehouse: document.getElementById('mWarehouse').value,
+                location: document.getElementById('mLocation').value,
+                reference: document.getElementById('mReference').value.trim(),
+                notes: document.getElementById('mNotes').value.trim()
+            });
+
+            editingMovementId = null;
+            closeModal();
+            renderMovements();
+            toast('Movimiento actualizado correctamente', 'success');
+        } else {
+            if (type === 'Salida' && qty > product.quantity) {
+                toast('Stock insuficiente. Disponible: ' + product.quantity, 'error');
+                return;
+            }
+
+            DataManager.saveMovement({
+                type: type,
+                product: productId,
+                productName: product.name,
+                quantity: qty,
+                warehouse: document.getElementById('mWarehouse').value,
+                location: document.getElementById('mLocation').value,
+                reference: document.getElementById('mReference').value.trim(),
+                notes: document.getElementById('mNotes').value.trim()
+            });
+
+            closeModal();
+            renderMovements();
+            toast('Movimiento registrado correctamente', 'success');
         }
-
-        DataManager.saveMovement({
-            type: type,
-            product: productId,
-            productName: product.name,
-            quantity: qty,
-            warehouse: document.getElementById('mWarehouse').value,
-            location: document.getElementById('mLocation').value,
-            reference: document.getElementById('mReference').value.trim(),
-            notes: document.getElementById('mNotes').value.trim()
-        });
-
-        closeModal();
-        renderMovements();
-        toast('Movimiento registrado correctamente', 'success');
     }
 
     // ══════════════════════════════════════════════════════════
@@ -1471,6 +1511,7 @@ const App = (() => {
         saveProductForm,
         invGoPage(p) { invPage = p; renderInventory(); },
         // Movements
+        editMovement: showMovementForm,
         saveMovement,
         // Orders
         viewOrder,
