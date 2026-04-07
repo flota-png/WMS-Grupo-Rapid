@@ -23,17 +23,18 @@ const COPIA_CARBON = [
     'almacen2@gruporapid.com'
 ];
 
-const API_BASE = 'https://wms-grupo-rapid.onrender.com';
+const FB_URL = 'https://wms-gruporapid-6689c-default-rtdb.firebaseio.com';
 
 // ── Leer datos ────────────────────────────────────────────────
 
 async function loadData() {
     try {
-        const res = await fetch(API_BASE + '/api/data');
-        if (!res.ok) throw new Error('Server error: ' + res.status);
-        return await res.json();
+        const res = await fetch(FB_URL + '/movements.json');
+        if (!res.ok) throw new Error('Firebase error: ' + res.status);
+        const movements = await res.json();
+        return { movements: movements || [] };
     } catch (e) {
-        console.error('Error leyendo datos del servidor:', e.message);
+        console.error('Error leyendo datos de Firebase:', e.message);
         return { movements: [] };
     }
 }

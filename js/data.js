@@ -144,75 +144,56 @@ const DataManager = (() => {
         notifications: true
     };
 
-    // ── Server Sync Functions ──────────────────────────────────
+    // ── Firebase Sync ──────────────────────────────────────────
 
-    const API_BASE = 'https://wms-grupo-rapid.onrender.com';
+    const FB_URL = 'https://wms-gruporapid-6689c-default-rtdb.firebaseio.com';
 
-    function isServerMode() {
-        return true; // Siempre sincronizar con el servidor
-    }
-
-    async function loadFromServer() {
-        try {
-            const res = await fetch(API_BASE + '/api/data');
-            if (!res.ok) throw new Error('Server error');
-            const data = await res.json();
-            _version = data._version || 0;
-            if (data.products && data.products.length > 0) {
-                _data.products = data.products;
-                _data.movements = data.movements || [];
-                _data.orders = data.orders || [];
-                _data.suppliers = data.suppliers || [];
-                _data.warehouses = data.warehouses || [];
-                _data.users = data.users || [];
-                _data.settings = data.settings || defaultSettings;
-                return true;
-            }
-            return false; // empty server, needs initialization
-        } catch (e) {
-            console.warn('No se pudo conectar al servidor, usando datos locales.', e.message);
-            return false;
-        }
-    }
-
-    function syncToServer() {
-        if (!isServerMode() || _syncing) return;
-        _syncing = true;
-        const payload = {
-            _version: _version,
-            products: _data.products,
-            movements: _data.movements,
-            orders: _data.orders,
-            suppliers: _data.suppliers,
-            warehouses: _data.warehouses,
-            users: _data.users,
-            settings: _data.settings
-        };
-        fetch(API_BASE + '/api/data', {
+    function fbSave(key, data) {
+        fetch(FB_URL + '/' + key + '.json', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(data)
         })
-        .then(r => r.json())
-        .then(res => { if (res.version) _version = res.version; })
-        .catch(e => console.warn('Error sincronizando:', e.message))
-        .finally(() => { _syncing = false; });
+        .then(r => { if (!r.ok) console.warn('FB save error', r.status); })
+        .catch(e => console.warn('FB save error', e.message));
     }
 
-    async function checkForUpdates() {
-        if (!isServerMode() || _syncing) return;
+    function fbLoad(key) {
+        return fetch(FB_URL + '/' + key + '.json')
+            .then(r => r.json())
+            .catch(() => null);
+    }
+
+    function syncToFirebase() {
+        fbSave('products', _data.products);
+        fbSave('movements', _data.movements);
+        fbSave('orders', _data.orders);
+        fbSave('suppliers', _data.suppliers);
+        fbSave('warehouses', _data.warehouses);
+        fbSave('users', _data.users);
+        fbSave('settings', _data.settings);
+    }
+
+    async function loadFromFirebase() {
         try {
-            const res = await fetch(API_BASE + '/api/version');
-            const info = await res.json();
-            if (info.version > _version) {
-                // Someone else made changes, reload data
-                const loaded = await loadFromServer();
-                if (loaded && typeof App !== 'undefined' && App.refreshCurrentModule) {
-                    App.refreshCurrentModule();
-                }
+            const [products, movements, orders, suppliers, warehouses, users, settings] = await Promise.all([
+                fbLoad('products'), fbLoad('movements'), fbLoad('orders'),
+                fbLoad('suppliers'), fbLoad('warehouses'), fbLoad('users'), fbLoad('settings')
+            ]);
+            if (products && products.length > 0) {
+                _data.products = products;
+                _data.movements = movements || [];
+                _data.orders = orders || [];
+                _data.suppliers = suppliers || [];
+                _data.warehouses = warehouses || [];
+                _data.users = users || [];
+                _data.settings = settings || defaultSettings;
+                return true;
             }
+            return false;
         } catch (e) {
-            // Server might be down, ignore
+            console.warn('No se pudo conectar a Firebase, usando datos locales.', e.message);
+            return false;
         }
     }
 
@@ -279,7 +260,7 @@ const DataManager = (() => {
 
     function persist() {
         saveAllToLocalStorage();
-        syncToServer();
+        syncToFirebase();
     }
 
     // ── Helper Functions ─────────────────────────────────────
@@ -305,10 +286,8 @@ const DataManager = (() => {
 
             let loaded = false;
 
-            // Try server first
-            if (isServerMode()) {
-                loaded = await loadFromServer();
-            }
+            // Try Firebase first
+            loaded = await loadFromFirebase();
 
             // Fallback to localStorage
             if (!loaded) {
@@ -319,14 +298,13 @@ const DataManager = (() => {
             if (!loaded) {
                 loadDefaults();
                 persist();
+            } else {
+                // Sync local data to Firebase if loaded from localStorage
+                saveAllToLocalStorage();
+                syncToFirebase();
             }
 
             _initialized = true;
-
-            // Start polling for updates from other users (every 5 seconds)
-            if (isServerMode()) {
-                _pollInterval = setInterval(checkForUpdates, 5000);
-            }
         },
 
         resetData() {
