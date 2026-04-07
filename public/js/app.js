@@ -391,6 +391,10 @@ const App = (() => {
             </button>`;
 
         openModal(title, body, footer);
+
+        setTimeout(() => {
+            document.getElementById('productForm')?.addEventListener('submit', e => e.preventDefault());
+        }, 50);
     }
 
     function saveProductForm(editId) {
@@ -546,6 +550,11 @@ const App = (() => {
             <button class="btn btn-primary" onclick="App.saveMovement()">${isEdit ? 'Actualizar Movimiento' : 'Registrar Movimiento'}</button>`;
 
         openModal(isEdit ? 'Editar Movimiento' : 'Registrar Movimiento', body, footer);
+
+        // Prevent form submit on Enter key
+        setTimeout(() => {
+            document.getElementById('movementForm')?.addEventListener('submit', e => e.preventDefault());
+        }, 50);
 
         // Auto-fill warehouse/location when product is selected
         setTimeout(() => {
