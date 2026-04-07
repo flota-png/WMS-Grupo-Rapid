@@ -146,14 +146,15 @@ const DataManager = (() => {
 
     // ── Server Sync Functions ──────────────────────────────────
 
+    const API_BASE = 'https://wms-grupo-rapid.onrender.com';
+
     function isServerMode() {
-        // Detect if we're running from a server (not file://)
-        return window.location.protocol === 'http:' || window.location.protocol === 'https:';
+        return true; // Siempre sincronizar con el servidor
     }
 
     async function loadFromServer() {
         try {
-            const res = await fetch('/api/data');
+            const res = await fetch(API_BASE + '/api/data');
             if (!res.ok) throw new Error('Server error');
             const data = await res.json();
             _version = data._version || 0;
@@ -187,7 +188,7 @@ const DataManager = (() => {
             users: _data.users,
             settings: _data.settings
         };
-        fetch('/api/data', {
+        fetch(API_BASE + '/api/data', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -201,7 +202,7 @@ const DataManager = (() => {
     async function checkForUpdates() {
         if (!isServerMode() || _syncing) return;
         try {
-            const res = await fetch('/api/version');
+            const res = await fetch(API_BASE + '/api/version');
             const info = await res.json();
             if (info.version > _version) {
                 // Someone else made changes, reload data
