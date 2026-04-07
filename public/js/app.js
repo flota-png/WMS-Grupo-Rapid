@@ -464,6 +464,12 @@ const App = (() => {
             return true;
         });
 
+        // Ordenar por fecha (reciente primero), luego por hora (reciente primero)
+        filtered.sort((a, b) => {
+            if (a.date !== b.date) return b.date.localeCompare(a.date);
+            return b.time.localeCompare(a.time);
+        });
+
         const rows = filtered.slice(0, 50).map(m => `<tr>
             <td>${m.date}</td>
             <td>${m.time}</td>
