@@ -18,3 +18,7 @@ services:
           property: connectionString
       - key: NODE_ENV
         value: production
+      - key: EMAIL_FROM
+        value: flota@gruporapid.com
+      - key: EMAIL_PASS
+        sync: false
