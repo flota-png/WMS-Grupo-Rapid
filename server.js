@@ -9,7 +9,6 @@
 const express = require('express');
 const path = require('path');
 const os = require('os');
-const emailReports = require('./email-reports');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -207,26 +206,6 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-// ── Enviar reporte manual ─────────────────────────────────
-app.post('/api/send-report/:type', async (req, res) => {
-    const { type } = req.params;
-    if (!['daily', 'weekly', 'monthly'].includes(type)) {
-        return res.status(400).json({ error: 'Tipo inválido. Usa: daily, weekly, monthly' });
-    }
-    try {
-        const data = await db.read();
-        const movements = data?.movements || [];
-        let report;
-        if (type === 'daily') report = emailReports.generateDailyReport(movements);
-        else if (type === 'weekly') report = emailReports.generateWeeklyReport(movements);
-        else report = emailReports.generateMonthlyReport(movements);
-        await emailReports.sendReport(report);
-        res.json({ ok: true, subject: report.subject });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
 // ── Catch-all: serve index.html ────────────────────────────
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -245,12 +224,6 @@ async function start() {
     }
 
     await db.initialize();
-
-    // Inicializar sistema de correos
-    const emailReady = emailReports.initTransporter();
-    if (emailReady) {
-        emailReports.startScheduledReports(db);
-    }
 
     app.listen(PORT, '0.0.0.0', () => {
         const mode = DATABASE_URL ? 'WEB (PostgreSQL)' : 'LOCAL (db.json)';
