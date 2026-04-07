@@ -493,6 +493,7 @@ const App = (() => {
     let editingMovementId = null;
 
     function showMovementForm(movementId) {
+        if (movementId instanceof Event || typeof movementId !== 'string') movementId = null;
         const movement = movementId ? DataManager.getMovement(movementId) : null;
         const isEdit = !!movement;
         editingMovementId = movementId || null;
