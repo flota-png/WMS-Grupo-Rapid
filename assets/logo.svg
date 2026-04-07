@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 60">
-  <text x="160" y="45" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="900" letter-spacing="2">
-    <tspan fill="#1a3a8f">GRUPO</tspan><tspan fill="#e31e24">RAPID</tspan>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80">
+  <rect x="60" y="12" width="200" height="4" rx="2" fill="#1a3a8f"/>
+  <text x="160" y="58" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="900" letter-spacing="1">
+    <tspan fill="#1a3a8f" font-style="italic">GRUPO</tspan><tspan fill="#e31e24" font-style="italic">RAPID</tspan>
   </text>
 </svg>
