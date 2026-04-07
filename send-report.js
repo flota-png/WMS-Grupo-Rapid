@@ -29,15 +29,23 @@ const FB_URL = 'https://wms-gruporapid-6689c-default-rtdb.firebaseio.com';
 
 async function loadData() {
     try {
-        const res = await fetch(FB_URL + '/movements.json');
-        if (!res.ok) throw new Error('Firebase error: ' + res.status);
-        const movements = await res.json();
-        return { movements: movements || [] };
+        const [movRes, prodRes] = await Promise.all([
+            fetch(FB_URL + '/movements.json'),
+            fetch(FB_URL + '/products.json')
+        ]);
+        const movements = await movRes.json() || [];
+        const products = await prodRes.json() || [];
+        // Build SKU lookup
+        const skuMap = {};
+        for (const p of products) { skuMap[p.id] = p.sku; }
+        return { movements, products, skuMap };
     } catch (e) {
         console.error('Error leyendo datos de Firebase:', e.message);
-        return { movements: [] };
+        return { movements: [], products: [], skuMap: {} };
     }
 }
+
+let _skuMap = {};
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -107,10 +115,12 @@ function buildMovementTable(movements) {
         const items = getMovItems(m);
         for (const item of items) {
             const badgeClass = m.type === 'Entrada' ? 'badge-entrada' : m.type === 'Salida' ? 'badge-salida' : 'badge-transferencia';
+            const sku = _skuMap[item.product] || '-';
             rows += `<tr>
                 <td>${formatDate(m.date)}</td>
                 <td>${m.time}</td>
                 <td><span class="badge ${badgeClass}">${m.type}</span></td>
+                <td>${sku}</td>
                 <td>${item.productName}</td>
                 <td style="text-align:center;">${item.quantity}</td>
                 <td>${item.warehouse}</td>
@@ -123,7 +133,7 @@ function buildMovementTable(movements) {
 
     return `<table>
         <thead><tr>
-            <th>Fecha</th><th>Hora</th><th>Tipo</th><th>Producto</th>
+            <th>Fecha</th><th>Hora</th><th>Tipo</th><th>SKU</th><th>Producto</th>
             <th style="text-align:center;">Cant.</th><th>Almacén</th><th>Ubicación</th><th>Referencia</th><th>Notas</th>
         </tr></thead>
         <tbody>${rows}</tbody>
@@ -236,6 +246,7 @@ async function main() {
 
     const data = await loadData();
     const movements = data.movements || [];
+    _skuMap = data.skuMap || {};
 
     let report;
     if (type === 'daily') report = generateDailyReport(movements);
