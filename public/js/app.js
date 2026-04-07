@@ -460,7 +460,13 @@ const App = (() => {
         const movements = DataManager.getMovements();
         let filtered = movements.filter(m => {
             if (movTypeFilter && m.type !== movTypeFilter) return false;
-            if (movSearchTerm && !m.productName.toLowerCase().includes(movSearchTerm.toLowerCase()) && !m.reference.toLowerCase().includes(movSearchTerm.toLowerCase())) return false;
+            if (movSearchTerm) {
+                const term = movSearchTerm.toLowerCase();
+                const items = m.items || [{ productName: m.productName }];
+                const matchProduct = items.some(i => i.productName.toLowerCase().includes(term));
+                const matchRef = (m.reference || '').toLowerCase().includes(term);
+                if (!matchProduct && !matchRef) return false;
+            }
             return true;
         });
 
@@ -470,22 +476,30 @@ const App = (() => {
             return b.time.localeCompare(a.time);
         });
 
-        const rows = filtered.slice(0, 50).map(m => `<tr>
+        const rows = filtered.slice(0, 50).map(m => {
+            const items = m.items || [{ productName: m.productName, quantity: m.quantity, warehouse: m.warehouse, location: m.location, notes: m.notes || '' }];
+            const productNames = items.map(i => i.productName).join(', ');
+            const quantities = items.map(i => i.quantity).join(', ');
+            const warehouses = [...new Set(items.map(i => i.warehouse))].join(', ');
+            const locations = items.map(i => i.location).filter(l => l).join(', ');
+            const notes = items.map(i => i.notes).filter(n => n).join('; ');
+            return `<tr>
             <td>${m.date}</td>
             <td>${m.time}</td>
             <td>${movTypeBadge(m.type)}</td>
-            <td>${m.productName}</td>
-            <td class="text-center">${m.quantity}</td>
-            <td>${m.warehouse}</td>
-            <td>${m.location}</td>
+            <td>${productNames}</td>
+            <td class="text-center">${quantities}</td>
+            <td>${warehouses}</td>
+            <td>${locations}</td>
             <td>${m.reference}</td>
-            <td>${m.notes || ''}</td>
+            <td>${notes}</td>
             <td>${m.user}</td>
             <td class="text-center" style="white-space:nowrap;">
                 <button class="btn btn-ghost btn-sm" onclick="App.editMovement('${m.id}')" title="Editar">✏️</button>
                 <button class="btn btn-ghost btn-sm" onclick="App.deleteMovement('${m.id}')" title="Eliminar">🗑️</button>
             </td>
-        </tr>`).join('');
+        </tr>`;
+        }).join('');
 
         document.getElementById('movementsTableBody').innerHTML = rows || `<tr><td colspan="11" class="empty-state"><p>Sin movimientos</p></td></tr>`;
         document.getElementById('movementsCount').textContent = `${filtered.length} movimientos`;
@@ -572,9 +586,13 @@ const App = (() => {
                 </div>
             </div>
             <div id="movProductRows">
-                ${buildProductRow(0, movement ? { product: movement.product, quantity: movement.quantity, warehouse: movement.warehouse, location: movement.location, notes: movement.notes } : null)}
+                ${isEdit ? (() => {
+                    const items = movement.items || [{ product: movement.product, productName: movement.productName, quantity: movement.quantity, warehouse: movement.warehouse, location: movement.location, notes: movement.notes || '' }];
+                    movProductCounter = items.length - 1;
+                    return items.map((item, i) => buildProductRow(i, item)).join('');
+                })() : buildProductRow(0, null)}
             </div>
-            ${!isEdit ? `<button type="button" class="btn btn-outline btn-sm" onclick="App.addMovProductRow()" style="margin-bottom:12px;">+ Agregar otro producto</button>` : ''}
+            <button type="button" class="btn btn-outline btn-sm" onclick="App.addMovProductRow()" style="margin-bottom:12px;">+ Agregar otro producto</button>
         </form>`;
 
         const footer = `
@@ -621,83 +639,83 @@ const App = (() => {
         if (row) row.remove();
     }
 
+    function collectItemsFromForm() {
+        const rows = document.querySelectorAll('.mov-product-row');
+        const items = [];
+        for (const row of rows) {
+            const productId = row.querySelector('.mProduct').value;
+            if (!productId) continue;
+            const product = DataManager.getProduct(productId);
+            if (!product) continue;
+            items.push({
+                product: productId,
+                productName: product.name,
+                quantity: parseInt(row.querySelector('.mQuantity').value),
+                warehouse: row.querySelector('.mWarehouse').value,
+                location: row.querySelector('.mLocation').value,
+                notes: row.querySelector('.mNotes').value.trim()
+            });
+        }
+        return items;
+    }
+
     function saveMovement() {
         const type = document.getElementById('mType').value;
         const date = document.getElementById('mDate').value;
         const reference = document.getElementById('mReference').value.trim();
+        const items = collectItemsFromForm();
+
+        if (items.length === 0) {
+            toast('Selecciona al menos un producto', 'warning');
+            return;
+        }
+
+        // Validate stock for exits
+        if (type === 'Salida') {
+            // For editing, temporarily revert old quantities to check
+            const oldMov = editingMovementId ? DataManager.getMovement(editingMovementId) : null;
+            const oldItems = oldMov ? (oldMov.items || [{ product: oldMov.product, quantity: oldMov.quantity }]) : [];
+
+            for (const item of items) {
+                const product = DataManager.getProduct(item.product);
+                let available = product.quantity;
+                // If editing, add back old quantity for same product
+                if (oldMov) {
+                    for (const oi of oldItems) {
+                        if (oi.product === item.product) {
+                            if (oldMov.type === 'Entrada') available -= parseInt(oi.quantity);
+                            else if (oldMov.type === 'Salida') available += parseInt(oi.quantity);
+                        }
+                    }
+                }
+                if (item.quantity > available) {
+                    toast(`Stock insuficiente para ${item.productName}. Disponible: ${available}`, 'error');
+                    return;
+                }
+            }
+        }
 
         if (editingMovementId) {
-            // Editing single movement
-            const row = document.querySelector('.mov-product-row[data-index="0"]');
-            const productId = row.querySelector('.mProduct').value;
-            const product = DataManager.getProduct(productId);
-            if (!product) { toast('Selecciona un producto', 'warning'); return; }
-            const qty = parseInt(row.querySelector('.mQuantity').value);
-
-            const oldMov = DataManager.getMovement(editingMovementId);
-            let effectiveStock = product.quantity;
-            if (oldMov.product === productId) {
-                if (oldMov.type === 'Entrada') effectiveStock -= parseInt(oldMov.quantity);
-                else if (oldMov.type === 'Salida') effectiveStock += parseInt(oldMov.quantity);
-            }
-            if (type === 'Salida' && qty > effectiveStock) {
-                toast('Stock insuficiente. Disponible (sin este movimiento): ' + effectiveStock, 'error');
-                return;
-            }
-
-            DataManager.updateMovement(editingMovementId, {
-                type, product: productId, productName: product.name, quantity: qty, date,
-                warehouse: row.querySelector('.mWarehouse').value,
-                location: row.querySelector('.mLocation').value,
-                reference, notes: row.querySelector('.mNotes').value.trim()
-            });
-
+            DataManager.updateMovement(editingMovementId, { type, date, reference, items });
             editingMovementId = null;
             closeModal();
             renderMovements();
             toast('Movimiento actualizado correctamente', 'success');
         } else {
-            // New: multiple products
-            const rows = document.querySelectorAll('.mov-product-row');
-            const movimientos = [];
-
-            for (const row of rows) {
-                const productId = row.querySelector('.mProduct').value;
-                if (!productId) continue;
-                const product = DataManager.getProduct(productId);
-                if (!product) continue;
-                const qty = parseInt(row.querySelector('.mQuantity').value);
-
-                if (type === 'Salida' && qty > product.quantity) {
-                    toast(`Stock insuficiente para ${product.name}. Disponible: ${product.quantity}`, 'error');
-                    return;
-                }
-
-                movimientos.push({
-                    type, product: productId, productName: product.name, quantity: qty, date,
-                    warehouse: row.querySelector('.mWarehouse').value,
-                    location: row.querySelector('.mLocation').value,
-                    reference, notes: row.querySelector('.mNotes').value.trim()
-                });
-            }
-
-            if (movimientos.length === 0) {
-                toast('Selecciona al menos un producto', 'warning');
-                return;
-            }
-
-            movimientos.forEach(m => DataManager.saveMovement(m));
+            DataManager.saveMovement({ type, date, reference, items });
             closeModal();
             renderMovements();
-            toast(`${movimientos.length} movimiento(s) registrado(s) correctamente`, 'success');
+            toast('Movimiento registrado correctamente', 'success');
         }
     }
 
     function deleteMovement(id) {
         const mov = DataManager.getMovement(id);
         if (!mov) return;
+        const items = mov.items || [{ productName: mov.productName, quantity: mov.quantity }];
+        const productList = items.map(i => `<strong>${i.productName}</strong> (${i.quantity} uds)`).join(', ');
         openModal('Confirmar Eliminación',
-            `<p>¿Estás seguro de eliminar el movimiento <strong>${mov.type}</strong> de <strong>${mov.productName}</strong> (${mov.quantity} uds)?</p><p style="color:var(--gray-500);margin-top:8px;font-size:0.88rem;">El stock del producto se ajustará automáticamente. Esta acción no se puede deshacer.</p>`,
+            `<p>¿Estás seguro de eliminar el movimiento <strong>${mov.type}</strong> de ${productList}?</p><p style="color:var(--gray-500);margin-top:8px;font-size:0.88rem;">El stock se ajustará automáticamente. Esta acción no se puede deshacer.</p>`,
             `<button class="btn btn-outline" onclick="App.closeModal()">Cancelar</button>
              <button class="btn btn-danger" onclick="App.confirmDeleteMovement('${id}')">Eliminar</button>`
         );

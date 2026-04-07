@@ -352,6 +352,24 @@ const DataManager = (() => {
         },
 
         // Movements
+        // Helper: get items array (backward compatible with old single-product format)
+        _getMovItems(mov) {
+            if (mov.items) return mov.items;
+            return [{ product: mov.product, productName: mov.productName, quantity: mov.quantity, warehouse: mov.warehouse, location: mov.location, notes: mov.notes || '' }];
+        },
+        _applyMovQuantities(mov, direction) {
+            // direction: 1 to apply, -1 to revert
+            const items = this._getMovItems(mov);
+            for (const item of items) {
+                const product = this.getProduct(item.product);
+                if (product) {
+                    if (mov.type === 'Entrada') product.quantity += direction * parseInt(item.quantity);
+                    else if (mov.type === 'Salida') product.quantity -= direction * parseInt(item.quantity);
+                    updateProductStatus(product);
+                    product.lastUpdated = new Date().toISOString().split('T')[0];
+                }
+            }
+        },
         getMovements() { return _data.movements; },
         saveMovement(mov) {
             mov.id = mov.id || generateId('M');
@@ -359,14 +377,7 @@ const DataManager = (() => {
             mov.time = mov.time || new Date().toTimeString().slice(0, 5);
             mov.user = mov.user || 'admin';
             _data.movements.unshift(mov);
-            // Update product quantity
-            const product = this.getProduct(mov.product);
-            if (product) {
-                if (mov.type === 'Entrada') product.quantity += parseInt(mov.quantity);
-                else if (mov.type === 'Salida') product.quantity -= parseInt(mov.quantity);
-                updateProductStatus(product);
-                product.lastUpdated = new Date().toISOString().split('T')[0];
-            }
+            this._applyMovQuantities(mov, 1);
             persist();
             return mov;
         },
@@ -376,24 +387,10 @@ const DataManager = (() => {
             const idx = _data.movements.findIndex(m => m.id === id);
             if (idx < 0) return null;
             const oldMov = _data.movements[idx];
-            // Revert old movement effect on product quantity
-            const oldProduct = this.getProduct(oldMov.product);
-            if (oldProduct) {
-                if (oldMov.type === 'Entrada') oldProduct.quantity -= parseInt(oldMov.quantity);
-                else if (oldMov.type === 'Salida') oldProduct.quantity += parseInt(oldMov.quantity);
-                updateProductStatus(oldProduct);
-            }
-            // Apply updates
+            this._applyMovQuantities(oldMov, -1);
             Object.assign(_data.movements[idx], updates);
             const newMov = _data.movements[idx];
-            // Apply new movement effect on product quantity
-            const newProduct = this.getProduct(newMov.product);
-            if (newProduct) {
-                if (newMov.type === 'Entrada') newProduct.quantity += parseInt(newMov.quantity);
-                else if (newMov.type === 'Salida') newProduct.quantity -= parseInt(newMov.quantity);
-                updateProductStatus(newProduct);
-                newProduct.lastUpdated = new Date().toISOString().split('T')[0];
-            }
+            this._applyMovQuantities(newMov, 1);
             persist();
             return newMov;
         },
@@ -401,14 +398,7 @@ const DataManager = (() => {
         deleteMovement(id) {
             const mov = _data.movements.find(m => m.id === id);
             if (!mov) return;
-            // Revert movement effect on product quantity
-            const product = this.getProduct(mov.product);
-            if (product) {
-                if (mov.type === 'Entrada') product.quantity -= parseInt(mov.quantity);
-                else if (mov.type === 'Salida') product.quantity += parseInt(mov.quantity);
-                updateProductStatus(product);
-                product.lastUpdated = new Date().toISOString().split('T')[0];
-            }
+            this._applyMovQuantities(mov, -1);
             _data.movements = _data.movements.filter(m => m.id !== id);
             persist();
         },
