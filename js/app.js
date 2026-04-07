@@ -478,27 +478,22 @@ const App = (() => {
 
         const rows = filtered.slice(0, 50).map(m => {
             const items = m.items || [{ productName: m.productName, quantity: m.quantity, warehouse: m.warehouse, location: m.location, notes: m.notes || '' }];
-            const productNames = items.map(i => i.productName).join(', ');
-            const quantities = items.map(i => i.quantity).join(', ');
-            const warehouses = [...new Set(items.map(i => i.warehouse))].join(', ');
-            const locations = items.map(i => i.location).filter(l => l).join(', ');
-            const notes = items.map(i => i.notes).filter(n => n).join('; ');
-            return `<tr>
+            return items.map(item => `<tr>
             <td>${m.date}</td>
             <td>${m.time}</td>
             <td>${movTypeBadge(m.type)}</td>
-            <td>${productNames}</td>
-            <td class="text-center">${quantities}</td>
-            <td>${warehouses}</td>
-            <td>${locations}</td>
+            <td>${item.productName}</td>
+            <td class="text-center">${item.quantity}</td>
+            <td>${item.warehouse}</td>
+            <td>${item.location || ''}</td>
             <td>${m.reference}</td>
-            <td>${notes}</td>
+            <td>${item.notes || ''}</td>
             <td>${m.user}</td>
             <td class="text-center" style="white-space:nowrap;">
                 <button class="btn btn-ghost btn-sm" onclick="App.editMovement('${m.id}')" title="Editar">✏️</button>
                 <button class="btn btn-ghost btn-sm" onclick="App.deleteMovement('${m.id}')" title="Eliminar">🗑️</button>
             </td>
-        </tr>`;
+        </tr>`).join('');
         }).join('');
 
         document.getElementById('movementsTableBody').innerHTML = rows || `<tr><td colspan="11" class="empty-state"><p>Sin movimientos</p></td></tr>`;
