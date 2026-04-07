@@ -470,7 +470,7 @@ const App = (() => {
             <td>${m.location}</td>
             <td>${m.reference}</td>
             <td>${m.user}</td>
-            <td class="text-center">
+            <td class="text-center" style="white-space:nowrap;">
                 <button class="btn btn-ghost btn-sm" onclick="App.editMovement('${m.id}')" title="Editar">✏️</button>
                 <button class="btn btn-ghost btn-sm" onclick="App.deleteMovement('${m.id}')" title="Eliminar">🗑️</button>
             </td>
