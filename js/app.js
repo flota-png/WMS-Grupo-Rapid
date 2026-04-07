@@ -472,6 +472,7 @@ const App = (() => {
             <td>${m.user}</td>
             <td class="text-center">
                 <button class="btn btn-ghost btn-sm" onclick="App.editMovement('${m.id}')" title="Editar">✏️</button>
+                <button class="btn btn-ghost btn-sm" onclick="App.deleteMovement('${m.id}')" title="Eliminar">🗑️</button>
             </td>
         </tr>`).join('');
 
@@ -616,6 +617,23 @@ const App = (() => {
             renderMovements();
             toast('Movimiento registrado correctamente', 'success');
         }
+    }
+
+    function deleteMovement(id) {
+        const mov = DataManager.getMovement(id);
+        if (!mov) return;
+        openModal('Confirmar Eliminación',
+            `<p>¿Estás seguro de eliminar el movimiento <strong>${mov.type}</strong> de <strong>${mov.productName}</strong> (${mov.quantity} uds)?</p><p style="color:var(--gray-500);margin-top:8px;font-size:0.88rem;">El stock del producto se ajustará automáticamente. Esta acción no se puede deshacer.</p>`,
+            `<button class="btn btn-outline" onclick="App.closeModal()">Cancelar</button>
+             <button class="btn btn-danger" onclick="App.confirmDeleteMovement('${id}')">Eliminar</button>`
+        );
+    }
+
+    function confirmDeleteMovement(id) {
+        DataManager.deleteMovement(id);
+        closeModal();
+        renderMovements();
+        toast('Movimiento eliminado', 'success');
     }
 
     // ══════════════════════════════════════════════════════════
@@ -1512,6 +1530,8 @@ const App = (() => {
         invGoPage(p) { invPage = p; renderInventory(); },
         // Movements
         editMovement: showMovementForm,
+        deleteMovement,
+        confirmDeleteMovement,
         saveMovement,
         // Orders
         viewOrder,

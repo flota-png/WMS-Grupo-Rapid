@@ -398,6 +398,21 @@ const DataManager = (() => {
             return newMov;
         },
 
+        deleteMovement(id) {
+            const mov = _data.movements.find(m => m.id === id);
+            if (!mov) return;
+            // Revert movement effect on product quantity
+            const product = this.getProduct(mov.product);
+            if (product) {
+                if (mov.type === 'Entrada') product.quantity -= parseInt(mov.quantity);
+                else if (mov.type === 'Salida') product.quantity += parseInt(mov.quantity);
+                updateProductStatus(product);
+                product.lastUpdated = new Date().toISOString().split('T')[0];
+            }
+            _data.movements = _data.movements.filter(m => m.id !== id);
+            persist();
+        },
+
         // Orders
         getOrders() { return _data.orders; },
         getOrder(id) { return _data.orders.find(o => o.id === id); },
