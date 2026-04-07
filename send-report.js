@@ -123,8 +123,6 @@ function buildMovementTable(movements) {
                 <td>${sku}</td>
                 <td>${item.productName}</td>
                 <td style="text-align:center;">${item.quantity}</td>
-                <td>${item.warehouse}</td>
-                <td>${item.location || '-'}</td>
                 <td>${m.reference || '-'}</td>
                 <td>${item.notes || '-'}</td>
             </tr>`;
@@ -134,7 +132,7 @@ function buildMovementTable(movements) {
     return `<table>
         <thead><tr>
             <th>Fecha</th><th>Hora</th><th>Tipo</th><th>SKU</th><th>Producto</th>
-            <th style="text-align:center;">Cant.</th><th>Almacén</th><th>Ubicación</th><th>Referencia</th><th>Notas</th>
+            <th style="text-align:center;">Cant.</th><th>Referencia</th><th>Notas</th>
         </tr></thead>
         <tbody>${rows}</tbody>
     </table>`;
