@@ -116,6 +116,7 @@ function buildMovementTable(movements) {
         for (const item of items) {
             const badgeClass = m.type === 'Entrada' ? 'badge-entrada' : m.type === 'Salida' ? 'badge-salida' : 'badge-transferencia';
             const sku = _skuMap[item.product] || '-';
+            const salidaSistema = m.salidaSistema ? '<span style="color:#059669;font-weight:600;">Sí</span>' : '<span style="color:#dc2626;">No</span>';
             rows += `<tr>
                 <td>${formatDate(m.date)}</td>
                 <td>${m.time}</td>
@@ -123,8 +124,8 @@ function buildMovementTable(movements) {
                 <td>${sku}</td>
                 <td>${item.productName}</td>
                 <td style="text-align:center;">${item.quantity}</td>
-                <td>${m.reference || '-'}</td>
                 <td>${item.notes || '-'}</td>
+                <td style="text-align:center;">${salidaSistema}</td>
             </tr>`;
         }
     }
@@ -132,7 +133,7 @@ function buildMovementTable(movements) {
     return `<table>
         <thead><tr>
             <th>Fecha</th><th>Hora</th><th>Tipo</th><th>SKU</th><th>Producto</th>
-            <th style="text-align:center;">Cant.</th><th>Referencia</th><th>Notas</th>
+            <th style="text-align:center;">Cant.</th><th>Notas</th><th style="text-align:center;">Salida Sistema</th>
         </tr></thead>
         <tbody>${rows}</tbody>
     </table>`;

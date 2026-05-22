@@ -488,6 +488,7 @@ const App = (() => {
             <td>${item.location || ''}</td>
             <td>${m.reference}</td>
             <td>${item.notes || ''}</td>
+            <td class="text-center">${m.salidaSistema ? '<span style="color:#059669;font-weight:600;">Sí</span>' : '<span style="color:#dc2626;">No</span>'}</td>
             <td>${m.user}</td>
             <td class="text-center" style="white-space:nowrap;">
                 <button class="btn btn-ghost btn-sm" onclick="App.editMovement('${m.id}')" title="Editar">✏️</button>
@@ -496,7 +497,7 @@ const App = (() => {
         </tr>`).join('');
         }).join('');
 
-        document.getElementById('movementsTableBody').innerHTML = rows || `<tr><td colspan="11" class="empty-state"><p>Sin movimientos</p></td></tr>`;
+        document.getElementById('movementsTableBody').innerHTML = rows || `<tr><td colspan="12" class="empty-state"><p>Sin movimientos</p></td></tr>`;
         document.getElementById('movementsCount').textContent = `${filtered.length} movimientos`;
     }
 
@@ -588,6 +589,18 @@ const App = (() => {
                 })() : buildProductRow(0, null)}
             </div>
             <button type="button" class="btn btn-outline btn-sm" onclick="App.addMovProductRow()" style="margin-bottom:12px;">+ Agregar otro producto</button>
+            <div style="margin-top:4px;padding:12px 14px;background:var(--gray-50,#f9fafb);border-radius:8px;border:1px solid var(--gray-200,#e5e7eb);">
+                <div style="font-size:0.85rem;font-weight:600;color:var(--gray-700,#374151);margin-bottom:8px;">Checklist</div>
+                <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                    <span style="font-size:0.88rem;color:var(--gray-700,#374151);">¿Se le dio salida al sistema?</span>
+                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.88rem;">
+                        <input type="radio" name="salidaSistema" value="si" ${movement?.salidaSistema === true ? 'checked' : ''}> Sí
+                    </label>
+                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.88rem;">
+                        <input type="radio" name="salidaSistema" value="no" ${movement?.salidaSistema !== true ? 'checked' : ''}> No
+                    </label>
+                </div>
+            </div>
         </form>`;
 
         const footer = `
@@ -658,6 +671,7 @@ const App = (() => {
         const type = document.getElementById('mType').value;
         const date = document.getElementById('mDate').value;
         const reference = document.getElementById('mReference').value.trim();
+        const salidaSistema = document.querySelector('input[name="salidaSistema"]:checked')?.value === 'si';
         const items = collectItemsFromForm();
 
         if (items.length === 0) {
@@ -691,13 +705,13 @@ const App = (() => {
         }
 
         if (editingMovementId) {
-            DataManager.updateMovement(editingMovementId, { type, date, reference, items });
+            DataManager.updateMovement(editingMovementId, { type, date, reference, items, salidaSistema });
             editingMovementId = null;
             closeModal();
             renderMovements();
             toast('Movimiento actualizado correctamente', 'success');
         } else {
-            DataManager.saveMovement({ type, date, reference, items });
+            DataManager.saveMovement({ type, date, reference, items, salidaSistema });
             closeModal();
             renderMovements();
             toast('Movimiento registrado correctamente', 'success');

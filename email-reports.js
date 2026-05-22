@@ -126,8 +126,8 @@ function buildMovementTable(movements) {
                 <td style="text-align:center;">${item.quantity}</td>
                 <td>${item.warehouse}</td>
                 <td>${item.location || '-'}</td>
-                <td>${m.reference || '-'}</td>
                 <td>${item.notes || '-'}</td>
+                <td style="text-align:center;">${m.salidaSistema ? '<span style="color:#059669;font-weight:600;">Sí</span>' : '<span style="color:#dc2626;">No</span>'}</td>
             </tr>`;
         }
     }
@@ -135,7 +135,7 @@ function buildMovementTable(movements) {
     return `<table>
         <thead><tr>
             <th>Fecha</th><th>Hora</th><th>Tipo</th><th>Producto</th>
-            <th style="text-align:center;">Cant.</th><th>Almacén</th><th>Ubicación</th><th>Referencia</th><th>Notas</th>
+            <th style="text-align:center;">Cant.</th><th>Almacén</th><th>Ubicación</th><th>Notas</th><th style="text-align:center;">Salida Sistema</th>
         </tr></thead>
         <tbody>${rows}</tbody>
     </table>`;
