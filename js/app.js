@@ -477,11 +477,14 @@ const App = (() => {
         });
 
         const rows = filtered.slice(0, 50).map(m => {
-            const items = m.items || [{ productName: m.productName, quantity: m.quantity, warehouse: m.warehouse, location: m.location, notes: m.notes || '' }];
-            return items.map(item => `<tr>
+            const items = m.items || [{ product: m.product, productName: m.productName, quantity: m.quantity, warehouse: m.warehouse, location: m.location, notes: m.notes || '' }];
+            return items.map(item => {
+                const sku = DataManager.getProduct(item.product)?.sku || '-';
+                return `<tr>
             <td>${m.date}</td>
             <td>${m.time}</td>
             <td>${movTypeBadge(m.type)}</td>
+            <td>${sku}</td>
             <td>${item.productName}</td>
             <td class="text-center">${item.quantity}</td>
             <td>${item.warehouse}</td>
@@ -494,10 +497,11 @@ const App = (() => {
                 <button class="btn btn-ghost btn-sm" onclick="App.editMovement('${m.id}')" title="Editar">✏️</button>
                 <button class="btn btn-ghost btn-sm" onclick="App.deleteMovement('${m.id}')" title="Eliminar">🗑️</button>
             </td>
-        </tr>`).join('');
+        </tr>`;
+            }).join('');
         }).join('');
 
-        document.getElementById('movementsTableBody').innerHTML = rows || `<tr><td colspan="12" class="empty-state"><p>Sin movimientos</p></td></tr>`;
+        document.getElementById('movementsTableBody').innerHTML = rows || `<tr><td colspan="13" class="empty-state"><p>Sin movimientos</p></td></tr>`;
         document.getElementById('movementsCount').textContent = `${filtered.length} movimientos`;
     }
 
